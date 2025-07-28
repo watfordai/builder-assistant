@@ -8,12 +8,16 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # Prompt template for room extraction
 def build_room_extraction_prompt(extracted_text):
     return f"""
-You are a smart assistant for builders. From the following architectural notes or floorplan description, extract a table of rooms with their dimensions if available.
+You are a smart assistant for builders. From the following architectural notes or floorplan text, extract a table of rooms with their dimensions if available.
 
-Provide the output as a markdown table with columns:
+Return the output as a markdown table with this format:
+
 Room Name | Length (m) | Width (m) | Height (m) | Floor Area (m²) | Wall Area (m²)
 
-If a measurement is missing, leave it blank. Estimate floor area if Length and Width are available. Estimate wall area using all 4 walls and height.
+- If any dimension is missing, leave it blank.
+- Estimate Floor Area using Length × Width.
+- Estimate Wall Area using 2×(L+W)×H if Length, Width, and Height are available.
+- If no rooms are found, still return an empty table header (do NOT apologize).
 
 TEXT:
 ---
@@ -51,7 +55,7 @@ CONTEXT:
 QUESTION:
 {question}
 
-Answer and update only if confident.
+Answer and update only if confident. Return your output in markdown.
 """
 
 def ask_question(question, context):
