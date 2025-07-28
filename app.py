@@ -17,9 +17,12 @@ uploaded_file = st.sidebar.file_uploader("Choose a PDF, DOCX or image", type=["p
 st.sidebar.markdown("---")
 manual_input = st.sidebar.text_area("Or paste architectural notes here:")
 
-# Flooring type selector
+# Material selectors
 st.sidebar.markdown("---")
 flooring_type = st.sidebar.selectbox("Choose flooring type", ["Laminate", "Tile", "Carpet", "Vinyl"])
+paint_type = st.sidebar.selectbox("Choose paint type", ["Standard Emulsion", "Premium Emulsion", "Gloss"])
+wall_finish = st.sidebar.selectbox("Choose wall finish", ["Paint", "Wallpaper"])
+radiator_required = st.sidebar.checkbox("Include radiators in each room?", value=True)
 
 # --- Pricing logic ---
 flooring_prices = {
@@ -28,6 +31,15 @@ flooring_prices = {
     "Carpet": 15.0,
     "Vinyl": 18.0
 }
+
+paint_prices = {
+    "Standard Emulsion": 1.2,
+    "Premium Emulsion": 2.0,
+    "Gloss": 1.8
+}
+
+wallpaper_price_per_m2 = 3.5
+radiator_cost_per_room = 150
 
 process_button = st.sidebar.button("📄 Process Document")
 
@@ -69,9 +81,20 @@ if process_button:
 
         st.subheader("💰 Cost Estimates")
         df["Flooring Cost (£)"] = df["Floor Area (m²)"] * flooring_prices[flooring_type]
+        if wall_finish == "Paint":
+            df["Wall Finish"] = paint_type
+            df["Wall Finish Cost (£)"] = df["Wall Area (m²)"] * paint_prices[paint_type]
+        else:
+            df["Wall Finish"] = "Wallpaper"
+            df["Wall Finish Cost (£)"] = df["Wall Area (m²)"] * wallpaper_price_per_m2
+
+        if radiator_required:
+            df["Radiator Cost (£)"] = radiator_cost_per_room
+        else:
+            df["Radiator Cost (£)"] = 0
+
         cost_df = estimate_costs(df)
-        cost_df["Flooring Type"] = flooring_type
-        cost_df["Flooring Cost (£)"] = df["Flooring Cost (£)"].round(2)
+        cost_df = cost_df.join(df[["Flooring Cost (£)", "Wall Finish", "Wall Finish Cost (£)", "Radiator Cost (£)"]])
 
         total_cost_row = pd.DataFrame(cost_df.select_dtypes(include=['number']).sum()).T
         total_cost_row.insert(0, "Room Name", "TOTAL")
