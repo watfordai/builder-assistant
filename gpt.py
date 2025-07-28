@@ -1,10 +1,9 @@
 # === builder-assistant/gpt.py ===
 
 import os
-import openai
+from openai import OpenAI
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Prompt template for room extraction
 def build_room_extraction_prompt(extracted_text):
@@ -24,7 +23,7 @@ TEXT:
 
 
 def call_gpt(prompt, model="gpt-4", temperature=0.3):
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": "You are a helpful assistant for construction and architecture."},
