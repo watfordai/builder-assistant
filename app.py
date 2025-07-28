@@ -41,8 +41,8 @@ if process_button:
             st.warning("❌ We couldn't detect any room data. Try uploading a clearer image or more complete floorplan.")
             st.stop()
 
-        # Assume default height of 2.4m if missing
-        df["Height (m)"] = df["Height (m)"].replace("", 2.4).fillna(2.4)
+        # Assume default height of 2.4m if missing or blank
+        df["Height (m)"] = pd.to_numeric(df["Height (m)"], errors='coerce').fillna(2.4)
 
         st.subheader("💰 Cost Estimates")
         cost_df = estimate_costs(df)
@@ -51,8 +51,13 @@ if process_button:
         st.markdown("### 🧾 Total Summary")
         totals = total_summary(cost_df)
         if totals:
-            summary_df = pd.DataFrame(totals.items(), columns=["Category", "Total Cost (£)"])
-            summary_df["Total Cost (£)"] = summary_df["Total Cost (£)"].apply(lambda x: f"£{x:.2f}")
+            summary_df = pd.DataFrame(totals.items(), columns=["Category", "Value"])
+            # Separate display formatting based on value type
+            def format_value(val):
+                if isinstance(val, (int, float)):
+                    return f"{val:.2f}" if 'area' in val.lower() or 'm²' in val.lower() else f"£{val:.2f}"
+                return val
+            summary_df["Value"] = summary_df["Value"].apply(lambda x: f"{x:.2f}" if isinstance(x, (int, float)) else x)
             st.table(summary_df)
         else:
             st.info("No costs to summarize.")
