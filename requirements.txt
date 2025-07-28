@@ -1,6 +1,5 @@
 streamlit
 openai
-paddleocr
 pdfplumber
 Pillow
 python-docx
