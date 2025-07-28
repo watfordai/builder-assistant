@@ -49,11 +49,8 @@ if process_button:
         df["Wall Area (m²)"] = 2 * (df["Length (m)"] + df["Width (m)"]) * df["Height (m)"]
         df["Wall Area (m²)"] = df["Wall Area (m²)"].round(2)
 
-        # Update table markdown to reflect recalculated values
-        updated_table = df.to_markdown(index=False)
-
         st.subheader("📋 Extracted Room Table")
-        st.markdown(f"```markdown\n{updated_table}\n```")
+        st.dataframe(df, use_container_width=True)
 
         st.subheader("💰 Cost Estimates")
         cost_df = estimate_costs(df)
@@ -69,7 +66,7 @@ if process_button:
             st.info("No costs to summarize.")
 
         # Store session state for Q&A
-        st.session_state["context_table"] = updated_table
+        st.session_state["context_table"] = df.to_markdown(index=False)
 
 # --- Question & Answer ---
 if "context_table" in st.session_state:
