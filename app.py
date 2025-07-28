@@ -41,6 +41,9 @@ if process_button:
             st.warning("❌ We couldn't detect any room data. Try uploading a clearer image or more complete floorplan.")
             st.stop()
 
+        # Assume default height of 2.4m if missing
+        df["Height (m)"] = df["Height (m)"].replace("", 2.4).fillna(2.4)
+
         st.subheader("💰 Cost Estimates")
         cost_df = estimate_costs(df)
         st.dataframe(cost_df, use_container_width=True)
@@ -48,7 +51,9 @@ if process_button:
         st.markdown("### 🧾 Total Summary")
         totals = total_summary(cost_df)
         if totals:
-            st.json(totals)
+            summary_df = pd.DataFrame(totals.items(), columns=["Category", "Total Cost (£)"])
+            summary_df["Total Cost (£)"] = summary_df["Total Cost (£)"].apply(lambda x: f"£{x:.2f}")
+            st.table(summary_df)
         else:
             st.info("No costs to summarize.")
 
