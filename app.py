@@ -33,8 +33,6 @@ if process_button:
 
     with st.spinner("Extracting room info using GPT-4..."):
         gpt_table_markdown = extract_rooms_from_text(raw_text)
-        st.subheader("📋 Extracted Room Table")
-        st.markdown(gpt_table_markdown)
 
         df = parse_markdown_table(gpt_table_markdown)
         if df.empty or df.columns[0] != "Room Name":
@@ -44,6 +42,12 @@ if process_button:
         # Assume default height of 2.4m if missing or blank
         df["Height (m)"] = pd.to_numeric(df["Height (m)"], errors='coerce')
         df.loc[df["Height (m)"].isna() | (df["Height (m)"] == 0), "Height (m)"] = 2.4
+
+        # Update table markdown to reflect new height values
+        updated_table = df.to_markdown(index=False)
+
+        st.subheader("📋 Extracted Room Table")
+        st.markdown(f"```markdown\n{updated_table}\n```")
 
         st.subheader("💰 Cost Estimates")
         cost_df = estimate_costs(df)
@@ -59,7 +63,7 @@ if process_button:
             st.info("No costs to summarize.")
 
         # Store session state for Q&A
-        st.session_state["context_table"] = gpt_table_markdown
+        st.session_state["context_table"] = updated_table
 
 # --- Question & Answer ---
 if "context_table" in st.session_state:
