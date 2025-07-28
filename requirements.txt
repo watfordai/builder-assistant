@@ -2,6 +2,7 @@ streamlit
 openai
 pdfplumber
 Pillow
+easyocr
 python-docx
 pandas
 numpy
