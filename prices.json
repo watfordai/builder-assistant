@@ -1,0 +1,22 @@
+{
+  "materials": {
+    "paint_per_m2": 1.5,
+    "tile_per_m2": 12,
+    "carpet_per_m2": 8,
+    "laminate_per_m2": 10,
+    "radiator_per_unit": 150,
+    "light_switch_per_unit": 10,
+    "plug_socket_per_unit": 15,
+    "underfloor_heating_per_m2": 80
+  },
+  "labour": {
+    "paint_per_m2": 3,
+    "tile_per_m2": 12,
+    "carpet_per_m2": 7,
+    "laminate_per_m2": 9,
+    "radiator_per_unit": 80,
+    "light_switch_per_unit": 25,
+    "plug_socket_per_unit": 25,
+    "underfloor_heating_per_m2": 40
+  }
+}

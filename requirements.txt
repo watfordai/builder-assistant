@@ -1,0 +1,8 @@
+streamlit
+openai
+paddleocr
+pdfplumber
+Pillow
+python-docx
+pandas
+numpy
