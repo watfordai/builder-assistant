@@ -6,3 +6,4 @@ easyocr
 python-docx
 pandas
 numpy
+tabulate
