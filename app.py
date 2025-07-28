@@ -80,21 +80,27 @@ if process_button:
         st.dataframe(combined_df, use_container_width=True)
 
         st.subheader("💰 Cost Estimates")
+        # Floor
         df["Flooring Cost (£)"] = df["Floor Area (m²)"] * flooring_prices[flooring_type]
+
+        # Wall
         if wall_finish == "Paint":
-            df["Wall Finish"] = paint_type
             df["Wall Finish Cost (£)"] = df["Wall Area (m²)"] * paint_prices[paint_type]
         else:
-            df["Wall Finish"] = "Wallpaper"
             df["Wall Finish Cost (£)"] = df["Wall Area (m²)"] * wallpaper_price_per_m2
 
-        if radiator_required:
-            df["Radiator Cost (£)"] = radiator_cost_per_room
-        else:
-            df["Radiator Cost (£)"] = 0
+        # Radiators
+        df["Radiator Cost (£)"] = radiator_cost_per_room if radiator_required else 0
 
+        # Base cost DF from estimate_costs
         cost_df = estimate_costs(df)
-        cost_df = cost_df.join(df[["Flooring Cost (£)", "Wall Finish", "Wall Finish Cost (£)", "Radiator Cost (£)"]])
+
+        # Join only selected columns
+        cost_columns = ["Flooring Cost (£)", "Wall Finish Cost (£)"]
+        if radiator_required:
+            cost_columns.append("Radiator Cost (£)")
+
+        cost_df = pd.concat([cost_df, df[cost_columns]], axis=1)
 
         total_cost_row = pd.DataFrame(cost_df.select_dtypes(include=['number']).sum()).T
         total_cost_row.insert(0, "Room Name", "TOTAL")
