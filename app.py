@@ -37,8 +37,8 @@ if process_button:
         st.markdown(gpt_table_markdown)
 
         df = parse_markdown_table(gpt_table_markdown)
-        if df.empty:
-            st.error("❌ Couldn't parse table from GPT output.")
+        if df.empty or df.columns[0] != "Room Name":
+            st.warning("❌ We couldn't detect any room data. Try uploading a clearer image or more complete floorplan.")
             st.stop()
 
         st.subheader("💰 Cost Estimates")
