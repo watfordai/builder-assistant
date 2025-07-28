@@ -17,6 +17,18 @@ uploaded_file = st.sidebar.file_uploader("Choose a PDF, DOCX or image", type=["p
 st.sidebar.markdown("---")
 manual_input = st.sidebar.text_area("Or paste architectural notes here:")
 
+# Flooring type selector
+st.sidebar.markdown("---")
+flooring_type = st.sidebar.selectbox("Choose flooring type", ["Laminate", "Tile", "Carpet", "Vinyl"])
+
+# --- Pricing logic ---
+flooring_prices = {
+    "Laminate": 20.0,
+    "Tile": 30.0,
+    "Carpet": 15.0,
+    "Vinyl": 18.0
+}
+
 process_button = st.sidebar.button("📄 Process Document")
 
 # --- Main Output ---
@@ -50,11 +62,22 @@ if process_button:
         df["Wall Area (m²)"] = df["Wall Area (m²)"].round(2)
 
         st.subheader("📋 Extracted Room Table")
-        st.dataframe(df, use_container_width=True)
+        total_row = df[["Floor Area (m²)", "Wall Area (m²)"]].sum().to_frame().T
+        total_row.insert(0, "Room Name", "TOTAL")
+        combined_df = pd.concat([df, total_row], ignore_index=True)
+        st.dataframe(combined_df, use_container_width=True)
 
         st.subheader("💰 Cost Estimates")
+        df["Flooring Cost (£)"] = df["Floor Area (m²)"] * flooring_prices[flooring_type]
         cost_df = estimate_costs(df)
-        st.dataframe(cost_df, use_container_width=True)
+        cost_df["Flooring Type"] = flooring_type
+        cost_df["Flooring Cost (£)"] = df["Flooring Cost (£)"].round(2)
+
+        total_cost_row = pd.DataFrame(cost_df.select_dtypes(include=['number']).sum()).T
+        total_cost_row.insert(0, "Room Name", "TOTAL")
+        combined_cost_df = pd.concat([cost_df, total_cost_row], ignore_index=True)
+
+        st.dataframe(combined_cost_df, use_container_width=True)
 
         st.markdown("### 🧾 Total Summary")
         totals = total_summary(cost_df)
