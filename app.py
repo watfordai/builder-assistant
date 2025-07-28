@@ -43,7 +43,13 @@ if process_button:
         df["Height (m)"] = pd.to_numeric(df["Height (m)"], errors='coerce')
         df.loc[df["Height (m)"].isna() | (df["Height (m)"] == 0), "Height (m)"] = 2.4
 
-        # Update table markdown to reflect new height values
+        # Calculate wall area: 2 × (L + W) × H
+        df["Length (m)"] = pd.to_numeric(df["Length (m)"], errors='coerce')
+        df["Width (m)"] = pd.to_numeric(df["Width (m)"], errors='coerce')
+        df["Wall Area (m²)"] = 2 * (df["Length (m)"] + df["Width (m)"]) * df["Height (m)"]
+        df["Wall Area (m²)"] = df["Wall Area (m²)"].round(2)
+
+        # Update table markdown to reflect recalculated values
         updated_table = df.to_markdown(index=False)
 
         st.subheader("📋 Extracted Room Table")
