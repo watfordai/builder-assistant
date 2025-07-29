@@ -77,6 +77,7 @@ if process_button:
         total_row = df[["Floor Area (m²)", "Wall Area (m²)"]].sum().to_frame().T
         total_row.insert(0, "Room Name", "TOTAL")
         combined_df = pd.concat([df, total_row], ignore_index=True)
+        st.session_state["room_table"] = combined_df
         st.dataframe(combined_df, use_container_width=True)
 
         st.subheader("💰 Cost Estimates")
@@ -110,13 +111,14 @@ if process_button:
                 total_cost_row[col] = ""
 
         combined_cost_df = pd.concat([cost_df, total_cost_row], ignore_index=True)
+        st.session_state["cost_table"] = combined_cost_df
         st.dataframe(combined_cost_df, use_container_width=True)
 
         st.markdown("### 🧾 Total Summary")
         total_cost = combined_cost_df[numeric_cols].sum().sum()
         st.metric("Estimated Project Total (£)", f"£{total_cost:,.2f}")
 
-        # Store session state for Q&A
+        # Store session state for Q&A context
         st.session_state["context_table"] = df.to_markdown(index=False)
 
 # --- Question & Answer ---
@@ -129,3 +131,11 @@ if "context_table" in st.session_state:
             answer = ask_question(user_q, st.session_state["context_table"])
             st.markdown("### 💬 Assistant's Answer")
             st.write(answer)
+
+        st.subheader("📋 Current Room Table")
+        if "room_table" in st.session_state:
+            st.dataframe(st.session_state["room_table"], use_container_width=True)
+
+        st.subheader("💰 Current Cost Estimates")
+        if "cost_table" in st.session_state:
+            st.dataframe(st.session_state["cost_table"], use_container_width=True)
