@@ -24,6 +24,7 @@ paint_type = st.sidebar.selectbox("Choose paint type", ["Standard Emulsion", "Pr
 wall_finish = st.sidebar.selectbox("Choose wall finish", ["Paint", "Wallpaper"])
 radiator_required = st.sidebar.checkbox("Include radiators in each room?", value=True)
 rewire_required = st.sidebar.checkbox("Rewire each room? (£40/m²)", value=False)
+room_height = st.sidebar.number_input("Ceiling height (m)", min_value=2.0, max_value=4.0, value=2.4, step=0.1)
 light_switch_type = st.sidebar.selectbox("Choose light switch type", [
     "None",
     "Single Switch (£4)",
@@ -77,7 +78,7 @@ if process_button:
 
         # Assume default height of 2.4m if missing or blank
         df["Height (m)"] = pd.to_numeric(df["Height (m)"], errors='coerce')
-        df.loc[df["Height (m)"].isna() | (df["Height (m)"] == 0), "Height (m)"] = 2.4
+        df.loc[df["Height (m)"].isna() | (df["Height (m)"] == 0), "Height (m)"] = room_height
 
         # Calculate wall area: 2 × (L + W) × H
         df["Length (m)"] = pd.to_numeric(df["Length (m)"], errors='coerce')
