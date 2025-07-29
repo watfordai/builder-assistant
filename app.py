@@ -77,14 +77,16 @@ if st.sidebar.button("💾 Save Session"):
         st.sidebar.warning("Please enter a session name to save.")
 
 if st.sidebar.button("📂 Load Session"):
-    if session_name and os.path.exists(f"{session_name}.json"):
-        with open(f"{session_name}.json", "r") as f:
+    existing_sessions = [f for f in os.listdir() if f.endswith(".json")]
+    if existing_sessions:
+        selected_session = st.sidebar.selectbox("Select a session to load", existing_sessions)
+        with open(selected_session, "r") as f:
             session_data = json.load(f)
             st.session_state["room_table"] = pd.DataFrame(session_data["room_table"])
             st.session_state["cost_table"] = pd.DataFrame(session_data["cost_table"])
-        st.sidebar.success("Session loaded.")
+        st.sidebar.success(f"Loaded session: {selected_session}")
     else:
-        st.sidebar.warning("Session file not found.")
+        st.sidebar.warning("No saved sessions found.")
 
 # --- Main Output ---
 if process_button:
@@ -146,7 +148,15 @@ if process_button:
         if "Width Source" in df.columns:
             styled_df = styled_df.apply(lambda row: [highlight_assumed(v, row["Width Source"]) if col == "Width (m)" else '' for col, v in row.items()], axis=1)
 
-        edited_df = st.data_editor(combined_df, num_rows="dynamic", use_container_width=True)
+        assumed_mask = combined_df[["Height (m)", "Length (m)", "Width (m)"]].isna() | (combined_df[["Height (m)", "Length (m)", "Width (m)"]] == room_height)
+        disabled_map = {col: [False if assumed else True for assumed in assumed_mask[col]] for col in assumed_mask.columns}
+
+        edited_df = st.data_editor(
+            combined_df,
+            num_rows="dynamic",
+            use_container_width=True,
+            disabled=disabled_map
+        )
         st.session_state["room_table"] = edited_df
         st.markdown("<span style='color:#999;font-size:12px;'>🔴 Red-highlighted fields use assumed values based on defaults.</span>", unsafe_allow_html=True)
         st.download_button("📥 Download Room Table (CSV)", data=combined_df.to_csv(index=False), file_name="room_table.csv", mime="text/csv")
