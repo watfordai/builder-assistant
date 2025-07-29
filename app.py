@@ -25,6 +25,10 @@ wall_finish = st.sidebar.selectbox("Choose wall finish", ["Paint", "Wallpaper"])
 radiator_required = st.sidebar.checkbox("Include radiators in each room?", value=True)
 rewire_required = st.sidebar.checkbox("Rewire each room? (£40/m²)", value=False)
 room_height = st.sidebar.number_input("Ceiling height (m)", min_value=2.0, max_value=4.0, value=2.4, step=0.1)
+measurement_unit = st.sidebar.selectbox("Are the dimensions in:", ["Metric (m)", "Imperial (ft)"])
+
+# Conversion factor
+ft_to_m = 0.3048
 light_switch_type = st.sidebar.selectbox("Choose light switch type", [
     "None",
     "Single Switch (£4)",
@@ -79,6 +83,14 @@ if process_button:
         # Assume default height of 2.4m if missing or blank
         df["Height (m)"] = pd.to_numeric(df["Height (m)"], errors='coerce')
         df.loc[df["Height (m)"].isna() | (df["Height (m)"] == 0), "Height (m)"] = room_height
+
+        # Convert from feet to meters if needed
+        if measurement_unit == "Imperial (ft)":
+            df["Length (m)"] = pd.to_numeric(df["Length (m)"], errors='coerce') * ft_to_m
+            df["Width (m)"] = pd.to_numeric(df["Width (m)"], errors='coerce') * ft_to_m
+        else:
+            df["Length (m)"] = pd.to_numeric(df["Length (m)"], errors='coerce')
+            df["Width (m)"] = pd.to_numeric(df["Width (m)"], errors='coerce')
 
         # Calculate wall area: 2 × (L + W) × H
         df["Length (m)"] = pd.to_numeric(df["Length (m)"], errors='coerce')
