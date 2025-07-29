@@ -134,8 +134,8 @@ if process_button:
     "Single Dimmer (£8)": 8,
     "Double Dimmer (£10)": 10
 }
-        df["Light Switches (£)"] = switch_costs[light_switch_type]
-        df["Double Sockets (£)"] = num_double_sockets * double_socket_cost
+        df["Light Switches (£)"] = [switch_costs[light_switch_type]] * df.shape[0]
+        df["Double Sockets (£)"] = [num_double_sockets * double_socket_cost] * df.shape[0]
 
         # Final cost breakdown
         display_cols = [
