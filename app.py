@@ -23,6 +23,7 @@ flooring_type = st.sidebar.selectbox("Choose flooring type", ["Laminate", "Tile"
 paint_type = st.sidebar.selectbox("Choose paint type", ["Standard Emulsion", "Premium Emulsion", "Gloss"])
 wall_finish = st.sidebar.selectbox("Choose wall finish", ["Paint", "Wallpaper"])
 radiator_required = st.sidebar.checkbox("Include radiators in each room?", value=True)
+rewire_required = st.sidebar.checkbox("Rewire each room? (£40/m²)", value=False)
 
 # --- Pricing logic ---
 flooring_prices = {
@@ -40,6 +41,7 @@ paint_prices = {
 
 wallpaper_price_per_m2 = 3.5
 radiator_cost_per_room = 150
+rewire_cost_per_m2 = 40.0
 
 process_button = st.sidebar.button("📄 Process Document")
 
@@ -55,7 +57,7 @@ if process_button:
         st.warning("Please upload a file or paste some text.")
         st.stop()
 
-    with st.spinner("Extracting room info using GPT-4..."):
+    with st.spinner("🔍 Builder Assistant is reviewing the floor plan..."):
         gpt_table_markdown = extract_rooms_from_text(raw_text)
 
         df = parse_markdown_table(gpt_table_markdown)
@@ -97,8 +99,13 @@ if process_button:
         else:
             df["Radiator Cost (£)"] = 0
 
+        if rewire_required:
+            df["Rewire Cost (£)"] = df["Floor Area (m²)"] * rewire_cost_per_m2
+        else:
+            df["Rewire Cost (£)"] = 0
+
         # Final cost breakdown
-        display_cols = ["Room Name", "Floor Area (m²)", "Wall Area (m²)", "Flooring Cost (£)", wall_label, "Radiator Cost (£)"]
+        display_cols = ["Room Name", "Floor Area (m²)", "Wall Area (m²)", "Flooring Cost (£)", wall_label, "Radiator Cost (£)", "Rewire Cost (£)"]
         cost_df = df[display_cols].copy()
 
         # Add totals row
@@ -127,7 +134,7 @@ if "context_table" in st.session_state:
     st.subheader("💬 Ask the Builder Assistant")
     user_q = st.text_input("What would you like to ask about the plan?")
     if st.button("Ask the Builder Assistant") and user_q.strip():
-        with st.spinner("Thinking..."):
+        with st.spinner("Builder Assistant is reviewing your request..."):
             answer = ask_question(user_q, st.session_state["context_table"])
             st.markdown("### 💬 Assistant's Answer")
             st.write(answer)
