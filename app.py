@@ -24,6 +24,8 @@ paint_type = st.sidebar.selectbox("Choose paint type", ["Standard Emulsion", "Pr
 wall_finish = st.sidebar.selectbox("Choose wall finish", ["Paint", "Wallpaper"])
 radiator_required = st.sidebar.checkbox("Include radiators in each room?", value=True)
 rewire_required = st.sidebar.checkbox("Rewire each room? (£40/m²)", value=False)
+num_light_switches = st.sidebar.selectbox("Number of light switches per room", list(range(0, 11)))
+num_double_sockets = st.sidebar.selectbox("Number of double sockets per room", list(range(0, 11)))
 
 # --- Pricing logic ---
 flooring_prices = {
@@ -42,6 +44,8 @@ paint_prices = {
 wallpaper_price_per_m2 = 3.5
 radiator_cost_per_room = 150
 rewire_cost_per_m2 = 40.0
+light_switch_cost = 5.0
+double_socket_cost = 8.0
 
 process_button = st.sidebar.button("📄 Process Document")
 
@@ -104,8 +108,14 @@ if process_button:
         else:
             df["Rewire Cost (£)"] = 0
 
+        df["Light Switches (£)"] = num_light_switches * light_switch_cost
+        df["Double Sockets (£)"] = num_double_sockets * double_socket_cost
+
         # Final cost breakdown
-        display_cols = ["Room Name", "Floor Area (m²)", "Wall Area (m²)", "Flooring Cost (£)", wall_label, "Radiator Cost (£)", "Rewire Cost (£)"]
+        display_cols = [
+            "Room Name", "Floor Area (m²)", "Wall Area (m²)", "Flooring Cost (£)", wall_label,
+            "Radiator Cost (£)", "Rewire Cost (£)", "Light Switches (£)", "Double Sockets (£)"
+        ]
         cost_df = df[display_cols].copy()
 
         # Add totals row
