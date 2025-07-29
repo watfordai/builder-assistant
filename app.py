@@ -80,42 +80,37 @@ if process_button:
         st.dataframe(combined_df, use_container_width=True)
 
         st.subheader("💰 Cost Estimates")
-        # Floor
+
+        # Apply chosen material costs only
         df["Flooring Cost (£)"] = df["Floor Area (m²)"] * flooring_prices[flooring_type]
 
-        # Wall
         if wall_finish == "Paint":
+            df["Wall Finish"] = paint_type
             df["Wall Finish Cost (£)"] = df["Wall Area (m²)"] * paint_prices[paint_type]
         else:
+            df["Wall Finish"] = "Wallpaper"
             df["Wall Finish Cost (£)"] = df["Wall Area (m²)"] * wallpaper_price_per_m2
 
-        # Radiators
-        df["Radiator Cost (£)"] = radiator_cost_per_room if radiator_required else 0
-
-        # Base cost DF from estimate_costs
-        cost_df = estimate_costs(df)
-
-        # Join only selected columns
-        cost_columns = ["Flooring Cost (£)", "Wall Finish Cost (£)"]
         if radiator_required:
-            cost_columns.append("Radiator Cost (£)")
+            df["Radiator Cost (£)"] = radiator_cost_per_room
+        else:
+            df["Radiator Cost (£)"] = 0
 
-        cost_df = pd.concat([cost_df, df[cost_columns]], axis=1)
+        # Final cost breakdown
+        cost_df = df[["Room Name", "Floor Area (m²)", "Wall Area (m²)", "Flooring Cost (£)", "Wall Finish", "Wall Finish Cost (£)", "Radiator Cost (£)"]].copy()
 
-        total_cost_row = pd.DataFrame(cost_df.select_dtypes(include=['number']).sum()).T
+        # Add totals row
+        numeric_cols = ["Floor Area (m²)", "Wall Area (m²)", "Flooring Cost (£)", "Wall Finish Cost (£)", "Radiator Cost (£)"]
+        total_cost_row = pd.DataFrame(cost_df[numeric_cols].sum()).T
         total_cost_row.insert(0, "Room Name", "TOTAL")
-        combined_cost_df = pd.concat([cost_df, total_cost_row], ignore_index=True)
+        total_cost_row["Wall Finish"] = ""
 
+        combined_cost_df = pd.concat([cost_df, total_cost_row], ignore_index=True)
         st.dataframe(combined_cost_df, use_container_width=True)
 
         st.markdown("### 🧾 Total Summary")
-        totals = total_summary(cost_df)
-        if totals:
-            summary_df = pd.DataFrame(totals.items(), columns=["Category", "Value"])
-            summary_df["Value"] = summary_df["Value"].apply(lambda x: f"{x:.2f}" if isinstance(x, (int, float)) else x)
-            st.table(summary_df)
-        else:
-            st.info("No costs to summarize.")
+        total_cost = combined_cost_df[numeric_cols].sum().sum()
+        st.metric("Estimated Project Total (£)", f"£{total_cost:,.2f}")
 
         # Store session state for Q&A
         st.session_state["context_table"] = df.to_markdown(index=False)
