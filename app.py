@@ -11,6 +11,7 @@ st.set_page_config(page_title="Builder Assistant", layout="wide")
 st.title("🏗️ Builder Assistant MVP")
 
 # --- Sidebar ---
+import json
 st.sidebar.header("Upload a file")
 uploaded_file = st.sidebar.file_uploader("Choose a PDF, DOCX or image", type=["pdf", "png", "jpg", "jpeg"])
 
@@ -60,6 +61,31 @@ double_socket_cost = 8.0
 
 process_button = st.sidebar.button("📄 Process Document")
 
+# --- Session Load/Save ---
+session_name = st.sidebar.text_input("Session name (for saving/loading)")
+
+if st.sidebar.button("💾 Save Session"):
+    if session_name:
+        session_data = {
+            "room_table": st.session_state.get("room_table", pd.DataFrame()).to_dict(),
+            "cost_table": st.session_state.get("cost_table", pd.DataFrame()).to_dict()
+        }
+        with open(f"{session_name}.json", "w") as f:
+            json.dump(session_data, f)
+        st.sidebar.success("Session saved successfully.")
+    else:
+        st.sidebar.warning("Please enter a session name to save.")
+
+if st.sidebar.button("📂 Load Session"):
+    if session_name and os.path.exists(f"{session_name}.json"):
+        with open(f"{session_name}.json", "r") as f:
+            session_data = json.load(f)
+            st.session_state["room_table"] = pd.DataFrame(session_data["room_table"])
+            st.session_state["cost_table"] = pd.DataFrame(session_data["cost_table"])
+        st.sidebar.success("Session loaded.")
+    else:
+        st.sidebar.warning("Session file not found.")
+
 # --- Main Output ---
 if process_button:
     if uploaded_file:
@@ -83,6 +109,7 @@ if process_button:
         # Assume default height of 2.4m if missing or blank
         df["Height (m)"] = pd.to_numeric(df["Height (m)"], errors='coerce')
         df.loc[df["Height (m)"].isna() | (df["Height (m)"] == 0), "Height (m)"] = room_height
+        df["Height Source"] = df["Height (m)"].apply(lambda x: "Assumed" if x == room_height else "From Plan")
 
         # Convert from feet to meters if needed
         if measurement_unit == "Imperial (ft)":
@@ -91,6 +118,10 @@ if process_button:
         else:
             df["Length (m)"] = pd.to_numeric(df["Length (m)"], errors='coerce')
             df["Width (m)"] = pd.to_numeric(df["Width (m)"], errors='coerce')
+
+        # Identify assumed values
+        df["Length Source"] = df["Length (m)"].apply(lambda x: "Assumed" if pd.isna(x) else "From Plan")
+        df["Width Source"] = df["Width (m)"].apply(lambda x: "Assumed" if pd.isna(x) else "From Plan")
 
         # Calculate wall area: 2 × (L + W) × H
         df["Length (m)"] = pd.to_numeric(df["Length (m)"], errors='coerce')
@@ -102,8 +133,23 @@ if process_button:
         total_row = df[["Floor Area (m²)", "Wall Area (m²)"]].sum().to_frame().T
         total_row.insert(0, "Room Name", "TOTAL")
         combined_df = pd.concat([df, total_row], ignore_index=True)
+        df.drop(columns=["Height Source", "Length Source", "Width Source"], errors='ignore', inplace=True)
         st.session_state["room_table"] = combined_df
-        st.dataframe(combined_df, use_container_width=True)
+        def highlight_assumed(val, source_col):
+            return 'background-color: #ffe6e6' if source_col == 'Assumed' else ''
+
+        styled_df = combined_df.style
+        if "Height Source" in df.columns:
+            styled_df = styled_df.apply(lambda row: [highlight_assumed(v, row["Height Source"]) if col == "Height (m)" else '' for col, v in row.items()], axis=1)
+        if "Length Source" in df.columns:
+            styled_df = styled_df.apply(lambda row: [highlight_assumed(v, row["Length Source"]) if col == "Length (m)" else '' for col, v in row.items()], axis=1)
+        if "Width Source" in df.columns:
+            styled_df = styled_df.apply(lambda row: [highlight_assumed(v, row["Width Source"]) if col == "Width (m)" else '' for col, v in row.items()], axis=1)
+
+        edited_df = st.data_editor(combined_df, num_rows="dynamic", use_container_width=True)
+        st.session_state["room_table"] = edited_df
+        st.markdown("<span style='color:#999;font-size:12px;'>🔴 Red-highlighted fields use assumed values based on defaults.</span>", unsafe_allow_html=True)
+        st.download_button("📥 Download Room Table (CSV)", data=combined_df.to_csv(index=False), file_name="room_table.csv", mime="text/csv")
 
         st.subheader("💰 Cost Estimates")
 
@@ -155,7 +201,27 @@ if process_button:
 
         combined_cost_df = pd.concat([cost_df, total_cost_row], ignore_index=True)
         st.session_state["cost_table"] = combined_cost_df
-        st.dataframe(combined_cost_df, use_container_width=True)
+        st.dataframe(st.session_state.get("cost_table", combined_cost_df), use_container_width=True)
+        st.download_button("📥 Download Cost Estimate (CSV)", data=combined_cost_df.to_csv(index=False), file_name="cost_estimates.csv", mime="text/csv")
+
+        # PDF download option
+        import io
+        from fpdf import FPDF
+
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.cell(200, 10, txt="Builder Assistant - Room Table Summary", ln=True, align='C')
+
+        for row in combined_df.fillna('').values.tolist():
+            row_text = " | ".join(str(cell) for cell in row)
+            pdf.multi_cell(0, 10, row_text)
+
+        pdf_output = io.BytesIO()
+        pdf.output(pdf_output)
+        pdf_output.seek(0)
+
+        st.download_button("📄 Download Room Table (PDF)", data=pdf_output, file_name="room_table.pdf", mime="application/pdf"), file_name="cost_estimates.csv", mime="text/csv")
 
         st.markdown("### 🧾 Total Summary")
         total_cost = combined_cost_df[numeric_cols].sum().sum()
