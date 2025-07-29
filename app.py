@@ -24,7 +24,13 @@ paint_type = st.sidebar.selectbox("Choose paint type", ["Standard Emulsion", "Pr
 wall_finish = st.sidebar.selectbox("Choose wall finish", ["Paint", "Wallpaper"])
 radiator_required = st.sidebar.checkbox("Include radiators in each room?", value=True)
 rewire_required = st.sidebar.checkbox("Rewire each room? (£40/m²)", value=False)
-num_light_switches = st.sidebar.selectbox("Number of light switches per room", list(range(0, 11)))
+light_switch_type = st.sidebar.selectbox("Choose light switch type", [
+    "None",
+    "Single Switch (£4)",
+    "Double Switch (£6)",
+    "Single Dimmer (£8)",
+    "Double Dimmer (£10)"
+])
 num_double_sockets = st.sidebar.selectbox("Number of double sockets per room", list(range(0, 11)))
 
 # --- Pricing logic ---
@@ -108,7 +114,14 @@ if process_button:
         else:
             df["Rewire Cost (£)"] = 0
 
-        df["Light Switches (£)"] = num_light_switches * light_switch_cost
+        switch_costs = {
+    "None": 0,
+    "Single Switch (£4)": 4,
+    "Double Switch (£6)": 6,
+    "Single Dimmer (£8)": 8,
+    "Double Dimmer (£10)": 10
+}
+df["Light Switches (£)"] = switch_costs[light_switch_type]
         df["Double Sockets (£)"] = num_double_sockets * double_socket_cost
 
         # Final cost breakdown
