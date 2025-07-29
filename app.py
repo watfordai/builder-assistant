@@ -202,28 +202,6 @@ if process_button:
         combined_cost_df = pd.concat([cost_df, total_cost_row], ignore_index=True)
         st.session_state["cost_table"] = combined_cost_df
         st.dataframe(st.session_state.get("cost_table", combined_cost_df), use_container_width=True)
-        st.download_button("📥 Download Cost Estimate (CSV)", data=combined_cost_df.to_csv(index=False), file_name="cost_estimates.csv", mime="text/csv")
-
-        # PDF download option
-        import io
-        from fpdf import FPDF
-
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
-        pdf.cell(200, 10, txt="Builder Assistant - Room Table Summary", ln=True, align='C')
-
-        for row in combined_df.fillna('').values.tolist():
-            row_text = " | ".join(str(cell) for cell in row)
-            pdf.multi_cell(0, 10, row_text)
-
-        pdf_output = io.BytesIO()
-        pdf.output(pdf_output)
-        pdf_output.seek(0)
-
-        st.download_button("📄 Download Room Table (PDF)", data=pdf_output, file_name="room_table.pdf", mime="application/pdf")
-st.download_button("📥 Download Cost Estimate (CSV)", data=combined_cost_df.to_csv(index=False), file_name="cost_estimates.csv", mime="text/csv")
-
         st.markdown("### 🧾 Total Summary")
         total_cost = combined_cost_df[numeric_cols].sum().sum()
         st.metric("Estimated Project Total (£)", f"£{total_cost:,.2f}")
