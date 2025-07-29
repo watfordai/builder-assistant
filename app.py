@@ -85,11 +85,11 @@ if process_button:
         df["Flooring Cost (£)"] = df["Floor Area (m²)"] * flooring_prices[flooring_type]
 
         if wall_finish == "Paint":
-            df["Wall Finish"] = paint_type
-            df["Wall Finish Cost (£)"] = df["Wall Area (m²)"] * paint_prices[paint_type]
+            wall_label = f"Paint ({paint_type}) (£)"
+            df[wall_label] = df["Wall Area (m²)"] * paint_prices[paint_type]
         else:
-            df["Wall Finish"] = "Wallpaper"
-            df["Wall Finish Cost (£)"] = df["Wall Area (m²)"] * wallpaper_price_per_m2
+            wall_label = "Wallpaper (£)"
+            df[wall_label] = df["Wall Area (m²)"] * wallpaper_price_per_m2
 
         if radiator_required:
             df["Radiator Cost (£)"] = radiator_cost_per_room
@@ -97,13 +97,17 @@ if process_button:
             df["Radiator Cost (£)"] = 0
 
         # Final cost breakdown
-        cost_df = df[["Room Name", "Floor Area (m²)", "Wall Area (m²)", "Flooring Cost (£)", "Wall Finish", "Wall Finish Cost (£)", "Radiator Cost (£)"]].copy()
+        display_cols = ["Room Name", "Floor Area (m²)", "Wall Area (m²)", "Flooring Cost (£)", wall_label, "Radiator Cost (£)"]
+        cost_df = df[display_cols].copy()
 
         # Add totals row
-        numeric_cols = ["Floor Area (m²)", "Wall Area (m²)", "Flooring Cost (£)", "Wall Finish Cost (£)", "Radiator Cost (£)"]
+        numeric_cols = [col for col in cost_df.columns if "(£)" in col or "Area" in col]
         total_cost_row = pd.DataFrame(cost_df[numeric_cols].sum()).T
         total_cost_row.insert(0, "Room Name", "TOTAL")
-        total_cost_row["Wall Finish"] = ""
+
+        for col in cost_df.columns:
+            if col not in total_cost_row.columns:
+                total_cost_row[col] = ""
 
         combined_cost_df = pd.concat([cost_df, total_cost_row], ignore_index=True)
         st.dataframe(combined_cost_df, use_container_width=True)
@@ -118,10 +122,10 @@ if process_button:
 # --- Question & Answer ---
 if "context_table" in st.session_state:
     st.markdown("---")
-    st.subheader("🤔 Ask a question")
+    st.subheader("💬 Ask the Builder Assistant")
     user_q = st.text_input("What would you like to ask about the plan?")
-    if st.button("Ask GPT") and user_q.strip():
+    if st.button("Ask the Builder Assistant") and user_q.strip():
         with st.spinner("Thinking..."):
             answer = ask_question(user_q, st.session_state["context_table"])
-            st.markdown("### 💬 GPT Answer")
+            st.markdown("### 💬 Assistant's Answer")
             st.write(answer)
