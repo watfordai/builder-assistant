@@ -221,7 +221,8 @@ if process_button:
         pdf.output(pdf_output)
         pdf_output.seek(0)
 
-        st.download_button("📄 Download Room Table (PDF)", data=pdf_output, file_name="room_table.pdf", mime="application/pdf"), file_name="cost_estimates.csv", mime="text/csv")
+        st.download_button("📄 Download Room Table (PDF)", data=pdf_output, file_name="room_table.pdf", mime="application/pdf")
+st.download_button("📥 Download Cost Estimate (CSV)", data=combined_cost_df.to_csv(index=False), file_name="cost_estimates.csv", mime="text/csv"), file_name="cost_estimates.csv", mime="text/csv")
 
         st.markdown("### 🧾 Total Summary")
         total_cost = combined_cost_df[numeric_cols].sum().sum()
