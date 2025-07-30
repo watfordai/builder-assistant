@@ -91,8 +91,11 @@ if process_button:
         if uploaded_file:
             if uploaded_file.name.lower().endswith((".png", ".jpg", ".jpeg")):
                 from PIL import Image
-                image_bytes = uploaded_file.read()
-                raw_text = extract_text(image_bytes)
+                import tempfile
+                image = Image.open(uploaded_file)
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                    image.save(tmp_file.name)
+                    raw_text = extract_text(tmp_file.name)
             elif uploaded_file.name.lower().endswith(".pdf"):
                 raw_text = extract_text(uploaded_file)
             else:
