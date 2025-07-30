@@ -102,20 +102,3 @@ if "room_table" in st.session_state and "cost_table" in st.session_state and not
     summary_numeric_cols = [col for col in st.session_state["cost_table"].columns if "(£)" in col or "Area" in col]
     total_cost = st.session_state["cost_table"][summary_numeric_cols].sum().sum()
     st.metric("Estimated Project Total (£)", f"£{total_cost:,.2f}")
-if "context_table" in st.session_state:
-    st.markdown("---")
-    st.subheader("💬 Ask the Builder Assistant")
-    user_q = st.text_input("What would you like to ask about the plan?")
-    if st.button("Ask the Builder Assistant") and user_q.strip():
-        with st.spinner("Builder Assistant is reviewing your request..."):
-            answer = ask_question(user_q, st.session_state["context_table"])
-            st.markdown("### 💬 Assistant's Answer")
-            st.write(answer)
-
-        st.subheader("📋 Current Room Table")
-        if "room_table" in st.session_state:
-            st.dataframe(st.session_state["room_table"], use_container_width=True)
-
-        st.subheader("💰 Current Cost Estimates")
-        if "cost_table" in st.session_state:
-            st.dataframe(st.session_state["cost_table"], use_container_width=True)
