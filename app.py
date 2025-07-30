@@ -90,9 +90,13 @@ if process_button:
     with st.spinner("🧠 Builder Assistant is extracting room data..."):
         if uploaded_file:
             if uploaded_file.name.lower().endswith((".png", ".jpg", ".jpeg")):
+                import tempfile
+                from PIL import Image
                 uploaded_file.seek(0)
-                image_bytes = uploaded_file.read()
-                raw_text = extract_text(image_bytes)
+                image = Image.open(uploaded_file)
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
+                    image.save(tmp_file.name)
+                    raw_text = extract_text(tmp_file.name)
             elif uploaded_file.name.lower().endswith(".pdf"):
                 raw_text = extract_text(uploaded_file)
             else:
