@@ -87,8 +87,26 @@ process_button = st.sidebar.button("📄 Process Document")
 
 
 if process_button:
-    # Placeholder: insert processing logic here once integrated
-    pass
+    with st.spinner("🧠 Builder Assistant is extracting room data..."):
+        if uploaded_file:
+            raw_text = extract_text(uploaded_file)
+        elif manual_input:
+            raw_text = manual_input
+        else:
+            st.error("❌ Please upload a file or paste notes.")
+            st.stop()
+
+        gpt_table_markdown = extract_rooms_from_text(raw_text)
+        st.session_state["context_table"] = gpt_table_markdown
+
+        df = parse_markdown_table(gpt_table_markdown, room_height, measurement_unit)
+        st.session_state["room_table"] = df
+
+        combined_cost_df = estimate_costs(
+            df, flooring_type, paint_type, wall_finish, radiator_required,
+            rewire_required, light_switch_type, num_double_sockets
+        )
+        st.session_state["cost_table"] = combined_cost_df
 
 # --- Restore Previous Session if Loaded ---
 if "room_table" in st.session_state and "cost_table" in st.session_state and not process_button:
