@@ -87,7 +87,8 @@ process_button = st.sidebar.button("📄 Process Document")
 
 
 if process_button:
-    # ... [existing processing logic remains unchanged] ...
+    # Placeholder: insert processing logic here once integrated
+    pass
 
 # --- Restore Previous Session if Loaded ---
 if "room_table" in st.session_state and "cost_table" in st.session_state and not process_button:
