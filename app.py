@@ -91,8 +91,8 @@ if process_button:
         if uploaded_file:
             if uploaded_file.name.lower().endswith((".png", ".jpg", ".jpeg")):
                 from PIL import Image
-                image = Image.open(uploaded_file)
-                raw_text = extract_text(image)
+                image_bytes = uploaded_file.read()
+                raw_text = extract_text(image_bytes)
             elif uploaded_file.name.lower().endswith(".pdf"):
                 raw_text = extract_text(uploaded_file)
             else:
