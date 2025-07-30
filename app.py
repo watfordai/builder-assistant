@@ -85,39 +85,13 @@ double_socket_cost = 8.0
 
 process_button = st.sidebar.button("📄 Process Document")
 
-# --- Session Load/Save ---
-session_name = st.sidebar.text_input("Session name (for saving/loading)")
 
-if st.sidebar.button("💾 Save Session"):
-    if session_name:
-        session_data = {
-            "room_table": st.session_state.get("room_table", pd.DataFrame()).to_dict(),
-            "cost_table": st.session_state.get("cost_table", pd.DataFrame()).to_dict()
-        }
-        with open(f"{session_name}.json", "w") as f:
-            json.dump(session_data, f)
-        st.sidebar.success("Session saved successfully.")
-    else:
-        st.sidebar.warning("Please enter a session name to save.")
-
-if st.sidebar.button("📂 Load Session"):
-    existing_sessions = [f for f in os.listdir() if f.endswith(".json")]
-    if existing_sessions:
-        selected_session = st.sidebar.selectbox("Select a session to load", existing_sessions)
-        with open(selected_session, "r") as f:
-            session_data = json.load(f)
-            st.session_state["room_table"] = pd.DataFrame(session_data["room_table"])
-            st.session_state["cost_table"] = pd.DataFrame(session_data["cost_table"])
-        st.sidebar.success(f"Loaded session: {selected_session}")
-    else:
-        st.sidebar.warning("No saved sessions found.")
-
-# --- Main Output ---
 if process_button:
     # ... [existing processing logic remains unchanged] ...
 
 # --- Restore Previous Session if Loaded ---
 if "room_table" in st.session_state and "cost_table" in st.session_state and not process_button:
+    # Display tables after loading session
     st.subheader("📋 Extracted Room Table")
     st.dataframe(st.session_state["room_table"], use_container_width=True)
 
