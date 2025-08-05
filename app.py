@@ -89,19 +89,9 @@ process_button = st.sidebar.button("📄 Process Document")
 if process_button:
     with st.spinner("🧠 Builder Assistant is extracting room data..."):
         if uploaded_file:
-            if uploaded_file.name.lower().endswith((".png", ".jpg", ".jpeg")):
-                import tempfile
-                from PIL import Image
-                uploaded_file.seek(0)
-                image = Image.open(uploaded_file)
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
-                    image.save(tmp_file.name)
-                    raw_text = extract_text(tmp_file.name)
-            elif uploaded_file.name.lower().endswith(".pdf"):
-                raw_text = extract_text(uploaded_file)
-            else:
-                st.error("Unsupported file type.")
-                st.stop()
+            uploaded_file.seek(0)
+            file_bytes = uploaded_file.read()
+            raw_text = extract_text(file_bytes, uploaded_file.name.lower())
         elif manual_input:
             raw_text = manual_input
         else:
