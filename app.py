@@ -124,7 +124,7 @@ if process_button:
 
 
 # --- Restore Previous Session if Loaded ---
-if "room_table" in st.session_state and "cost_table" in st.session_state and not process_button:
+if "room_table" in st.session_state and "cost_table" in st.session_state:
     # Display tables after loading session
     st.subheader("📋 Extracted Room Table")
     st.dataframe(st.session_state["room_table"], use_container_width=True)
