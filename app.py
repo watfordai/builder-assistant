@@ -107,7 +107,7 @@ if process_button:
         st.session_state["context_table"] = gpt_table_markdown
 
         try:
-            df = parse_markdown_table(gpt_table_markdown, room_height, measurement_unit)
+            df = parse_markdown_table(gpt_table_markdown)
             st.session_state["room_table"] = df
 
             combined_cost_df = estimate_costs(
