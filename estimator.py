@@ -1,121 +1,89 @@
-# === builder-assistant/app.py ===
+# === builder-assistant/estimator.py ===
 
-import streamlit as st
-import os
-import json
 import pandas as pd
-from ocr import extract_text
-from gpt import extract_rooms_from_text, ask_question
-from estimator import parse_markdown_table, estimate_costs, total_summary
+import json
 
-st.set_page_config(page_title="Builder Assistant", layout="wide")
-st.title("🏗️ Builder Assistant MVP")
+# Load material and labour pricing
+with open("prices.json") as f:
+    prices = json.load(f)
 
-# --- Sidebar ---
-st.sidebar.header("📂 Session Management")
+materials = prices["materials"]
+labour = prices["labour"]
 
-session_name = st.sidebar.text_input("Session name (for saving/loading)")
-if st.sidebar.button("💾 Save Session"):
-    if session_name:
-        session_data = {
-            "room_table": st.session_state.get("room_table", pd.DataFrame()).to_dict(),
-            "cost_table": st.session_state.get("cost_table", pd.DataFrame()).to_dict()
+
+def parse_markdown_table(markdown):
+    try:
+        # Read markdown table into pandas
+        table_lines = markdown.strip().splitlines()
+        data = [line.strip('|').split('|') for line in table_lines if '|' in line and not line.strip().startswith('|---')]
+        headers = [h.strip() for h in data[0]]
+        rows = [[cell.strip() for cell in row] for row in data[1:]]
+        df = pd.DataFrame(rows, columns=headers)
+
+        # Convert numeric columns to float where possible
+        for col in ['Length (m)', 'Width (m)', 'Height (m)', 'Floor Area (m²)', 'Wall Area (m²)']:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+
+        return df
+    except Exception as e:
+        print("Error parsing table:", e)
+        return pd.DataFrame()
+
+
+def estimate_costs(df, flooring_type, paint_type, wall_finish, radiator_required,
+                   rewire_required, light_switch_type, num_double_sockets):
+    results = []
+
+    for _, row in df.iterrows():
+        room = row.get("Room Name", "Unknown")
+        floor_area = row.get("Floor Area (m²)", 0) or 0
+        wall_area = row.get("Wall Area (m²)", 0) or 0
+
+        paint_cost = wall_area * materials.get(paint_type.lower().replace(" ", "_") + "_per_m2", 0)
+        wall_finish_cost = wall_area * (materials.get("wallpaper_per_m2", 0) if wall_finish == "Wallpaper" else 0)
+        flooring_cost = floor_area * materials.get(flooring_type.lower() + "_per_m2", 0)
+
+        # Labour costs
+        paint_labour = wall_area * labour.get("paint_per_m2", 0)
+        flooring_labour = floor_area * labour.get(flooring_type.lower() + "_per_m2", 0)
+
+        radiator_cost = radiator_required * 150
+        rewire_cost = floor_area * 40 if rewire_required else 0
+
+        switch_cost_map = {
+            "None": 0,
+            "Single Switch (£4)": 4,
+            "Double Switch (£6)": 6,
+            "Single Dimmer (£8)": 8,
+            "Double Dimmer (£10)": 10
         }
-        with open(f"{session_name}.json", "w") as f:
-            json.dump(session_data, f)
-        st.sidebar.success("✅ Session saved successfully.")
-    else:
-        st.sidebar.warning("⚠️ Please enter a session name to save.")
+        switch_cost = switch_cost_map.get(light_switch_type, 0)
+        socket_cost = num_double_sockets * 8
 
-existing_sessions = [f for f in os.listdir() if f.endswith(".json")]
-if existing_sessions:
-    selected_session = st.sidebar.selectbox("Select a session to load", existing_sessions)
-    if st.sidebar.button("📂 Load Selected Session"):
-        with open(selected_session, "r") as f:
-            session_data = json.load(f)
-            st.session_state["room_table"] = pd.DataFrame(session_data["room_table"])
-            st.session_state["cost_table"] = pd.DataFrame(session_data["cost_table"])
-            st.session_state["context_table"] = st.session_state["room_table"].to_markdown(index=False)
-        st.sidebar.success(f"✅ Loaded session: {selected_session}")
+        total = paint_cost + wall_finish_cost + flooring_cost + paint_labour + flooring_labour + radiator_cost + rewire_cost + switch_cost + socket_cost
 
-uploaded_file = st.sidebar.file_uploader("Choose a PDF, DOCX or image", type=["pdf", "png", "jpg", "jpeg"])
-st.sidebar.markdown("---")
-manual_input = st.sidebar.text_area("Or paste architectural notes here:")
+        results.append({
+            "Room": room,
+            "Floor Area (m²)": floor_area,
+            "Wall Area (m²)": wall_area,
+            "Paint £": round(paint_cost, 2),
+            "Wall Finish £": round(wall_finish_cost, 2),
+            "Flooring £": round(flooring_cost, 2),
+            "Paint Labour £": round(paint_labour, 2),
+            "Flooring Labour £": round(flooring_labour, 2),
+            "Radiator £": radiator_cost,
+            "Rewiring £": round(rewire_cost, 2),
+            "Light Switch £": switch_cost,
+            "Double Sockets (£)": socket_cost,
+            "Total (£)": round(total, 2)
+        })
 
-# Material selectors
-st.sidebar.markdown("---")
-flooring_type = st.sidebar.selectbox("Choose flooring type", ["Laminate", "Tile", "Carpet", "Vinyl"])
-paint_type = st.sidebar.selectbox("Choose paint type", ["Standard Emulsion", "Premium Emulsion", "Gloss"])
-wall_finish = st.sidebar.selectbox("Choose wall finish", ["Paint", "Wallpaper"])
-radiator_required = st.sidebar.checkbox("Include radiators in each room?", value=True)
-rewire_required = st.sidebar.checkbox("Rewire each room? (£40/m²)", value=False)
-room_height = st.sidebar.number_input("Ceiling height (m)", min_value=2.0, max_value=4.0, value=2.4, step=0.1)
-measurement_unit = st.sidebar.selectbox("Are the dimensions in:", ["Metric (m)", "Imperial (ft)"])
+    return pd.DataFrame(results)
 
-# Electrical fittings
-light_switch_type = st.sidebar.selectbox("Choose light switch type", [
-    "None",
-    "Single Switch (£4)",
-    "Double Switch (£6)",
-    "Single Dimmer (£8)",
-    "Double Dimmer (£10)"
-])
-num_double_sockets = st.sidebar.selectbox("Number of double sockets per room", list(range(0, 11)))
 
-# Pricing logic
-flooring_prices = {"Laminate": 20.0, "Tile": 30.0, "Carpet": 15.0, "Vinyl": 18.0}
-paint_prices = {"Standard Emulsion": 1.2, "Premium Emulsion": 2.0, "Gloss": 1.8}
-wallpaper_price_per_m2 = 3.5
-radiator_cost_per_room = 150
-rewire_cost_per_m2 = 40.0
-light_switch_cost = 5.0
-double_socket_cost = 8.0
-
-process_button = st.sidebar.button("📄 Process Document")
-
-if process_button:
-    with st.spinner("🧠 Builder Assistant is extracting room data..."):
-        if uploaded_file:
-            uploaded_file.seek(0)
-            file_bytes = uploaded_file.read()
-            raw_text = extract_text(file_bytes, uploaded_file.name.lower())
-        elif manual_input:
-            raw_text = manual_input
-        else:
-            st.error("❌ Please upload a file or paste notes.")
-            st.stop()
-
-        gpt_table_markdown = extract_rooms_from_text(raw_text)
-
-        if not gpt_table_markdown or "Room Name" not in gpt_table_markdown:
-            st.error("❌ Failed to extract a valid table from the document. Please check the file content or try another image.")
-            st.stop()
-
-        st.session_state["context_table"] = gpt_table_markdown
-
-        try:
-            df = parse_markdown_table(gpt_table_markdown)
-            st.session_state["room_table"] = df
-
-            combined_cost_df = estimate_costs(
-                df, flooring_type, paint_type, wall_finish, radiator_required,
-                rewire_required, light_switch_type, num_double_sockets
-            )
-            st.session_state["cost_table"] = combined_cost_df
-
-        except Exception as e:
-            st.error(f"❌ Error parsing extracted table: {e}")
-            st.stop()
-
-# --- Restore Previous Session if Loaded ---
-if "room_table" in st.session_state and "cost_table" in st.session_state:
-    st.subheader("📋 Extracted Room Table")
-    st.dataframe(st.session_state["room_table"], use_container_width=True)
-
-    st.subheader("💰 Cost Estimates")
-    st.dataframe(st.session_state["cost_table"], use_container_width=True)
-
-    st.markdown("### 🧾 Total Summary")
-    summary_numeric_cols = [col for col in st.session_state["cost_table"].columns if "(£)" in col or "Area" in col]
-    total_cost = st.session_state["cost_table"][summary_numeric_cols].sum().sum()
-    st.metric("Estimated Project Total (£)", f"£{total_cost:,.2f}")
+def total_summary(cost_df):
+    if cost_df.empty:
+        return {}
+    totals = cost_df.drop(columns=["Room"]).sum(numeric_only=True)
+    return totals.to_dict()
