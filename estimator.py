@@ -25,6 +25,14 @@ def parse_markdown_table(markdown):
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
+        # Handle missing or assumed values
+        df['Height (m)'] = df['Height (m)'].fillna(2.4)
+
+        # Recalculate missing floor or wall area
+        df['Floor Area (m²)'] = df['Floor Area (m²)'].fillna(df['Length (m)'] * df['Width (m)'])
+        df['Wall Area (m²)'] = df['Wall Area (m²)'].fillna(
+            2 * (df['Length (m)'] + df['Width (m)']) * df['Height (m)'])
+
         return df
     except Exception as e:
         print("Error parsing table:", e)
@@ -65,8 +73,8 @@ def estimate_costs(df, flooring_type, paint_type, wall_finish, radiator_required
 
         results.append({
             "Room": room,
-            "Floor Area (m²)": floor_area,
-            "Wall Area (m²)": wall_area,
+            "Floor Area (m²)": round(floor_area, 2),
+            "Wall Area (m²)": round(wall_area, 2),
             "Paint £": round(paint_cost, 2),
             "Wall Finish £": round(wall_finish_cost, 2),
             "Flooring £": round(flooring_cost, 2),
