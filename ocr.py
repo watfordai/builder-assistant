@@ -1,12 +1,14 @@
 # === builder-assistant/ocr.py ===
 
-import easyocr
+import pdfplumber
 from PIL import Image
 import io
+import base64
+import paddleocr
 import tempfile
-import pdfplumber
+import streamlit as st  # For debugging in Streamlit UI
 
-reader = easyocr.Reader(['en'], gpu=False)
+ocr_engine = paddleocr.OCR(use_angle_cls=True, lang='en')
 
 
 def extract_text_from_pdf(file_bytes):
@@ -18,17 +20,27 @@ def extract_text_from_pdf(file_bytes):
 
 
 def extract_text_from_image(file_bytes):
-    image = Image.open(io.BytesIO(file_bytes)).convert('RGB')
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-        image.save(tmp.name)
-        results = reader.readtext(tmp.name, detail=0)
-    return "\n".join(results)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+        tmp.write(file_bytes)
+        tmp_path = tmp.name
+
+    ocr_results = ocr_engine.ocr(tmp_path, cls=True)
+    lines = []
+    for block in ocr_results[0]:
+        text = block[1][0]
+        lines.append(text)
+
+    # Debug output: show raw OCR text to user for verification
+    raw_ocr_text = "\n".join(lines)
+    st.expander("🔍 Raw OCR Output").code(raw_ocr_text)
+
+    return raw_ocr_text
 
 
 def extract_text(file_bytes, file_type):
     if file_type.endswith(".pdf"):
         return extract_text_from_pdf(file_bytes)
-    elif file_type.endswith((".png", ".jpg", ".jpeg")):
+    elif file_type.endswith(('.png', '.jpg', '.jpeg')):
         return extract_text_from_image(file_bytes)
     else:
         return "Unsupported file type"
