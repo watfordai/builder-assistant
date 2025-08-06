@@ -31,7 +31,8 @@ def parse_markdown_table(markdown):
         return pd.DataFrame()
 
 
-def estimate_costs(df):
+def estimate_costs(df, flooring_type, paint_type, wall_finish, radiator_required,
+                   rewire_required, light_switch_type, num_double_sockets):
     results = []
 
     for _, row in df.iterrows():
@@ -39,30 +40,43 @@ def estimate_costs(df):
         floor_area = row.get("Floor Area (m²)", 0) or 0
         wall_area = row.get("Wall Area (m²)", 0) or 0
 
-        # Material costs
-        paint_cost = wall_area * materials.get("paint_per_m2", 0)
-        tile_cost = floor_area * materials.get("tile_per_m2", 0)
-        carpet_cost = floor_area * materials.get("carpet_per_m2", 0)
-        laminate_cost = floor_area * materials.get("laminate_per_m2", 0)
+        paint_cost = wall_area * materials.get(paint_type.lower().replace(" ", "_") + "_per_m2", 0)
+        wall_finish_cost = wall_area * (materials.get("wallpaper_per_m2", 0) if wall_finish == "Wallpaper" else 0)
+        flooring_cost = floor_area * materials.get(flooring_type.lower() + "_per_m2", 0)
 
         # Labour costs
         paint_labour = wall_area * labour.get("paint_per_m2", 0)
-        tile_labour = floor_area * labour.get("tile_per_m2", 0)
-        carpet_labour = floor_area * labour.get("carpet_per_m2", 0)
-        laminate_labour = floor_area * labour.get("laminate_per_m2", 0)
+        flooring_labour = floor_area * labour.get(flooring_type.lower() + "_per_m2", 0)
+
+        radiator_cost = radiator_required * 150
+        rewire_cost = floor_area * 40 if rewire_required else 0
+
+        switch_cost_map = {
+            "None": 0,
+            "Single Switch (£4)": 4,
+            "Double Switch (£6)": 6,
+            "Single Dimmer (£8)": 8,
+            "Double Dimmer (£10)": 10
+        }
+        switch_cost = switch_cost_map.get(light_switch_type, 0)
+        socket_cost = num_double_sockets * 8
+
+        total = paint_cost + wall_finish_cost + flooring_cost + paint_labour + flooring_labour + radiator_cost + rewire_cost + switch_cost + socket_cost
 
         results.append({
             "Room": room,
             "Floor Area (m²)": floor_area,
             "Wall Area (m²)": wall_area,
-            "Paint £": paint_cost,
-            "Paint Labour £": paint_labour,
-            "Tile £": tile_cost,
-            "Tile Labour £": tile_labour,
-            "Carpet £": carpet_cost,
-            "Carpet Labour £": carpet_labour,
-            "Laminate £": laminate_cost,
-            "Laminate Labour £": laminate_labour,
+            "Paint £": round(paint_cost, 2),
+            "Wall Finish £": round(wall_finish_cost, 2),
+            "Flooring £": round(flooring_cost, 2),
+            "Paint Labour £": round(paint_labour, 2),
+            "Flooring Labour £": round(flooring_labour, 2),
+            "Radiator £": radiator_cost,
+            "Rewiring £": round(rewire_cost, 2),
+            "Light Switch £": switch_cost,
+            "Double Sockets (£)": socket_cost,
+            "Total (£)": round(total, 2)
         })
 
     return pd.DataFrame(results)
