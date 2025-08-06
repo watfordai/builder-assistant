@@ -108,6 +108,13 @@ st.session_state["context_table"] = gpt_table_markdown
 
 try:
     df = parse_markdown_table(gpt_table_markdown, room_height, measurement_unit)
+    st.session_state["room_table"] = df
+
+    combined_cost_df = estimate_costs(
+        df, flooring_type, paint_type, wall_finish, radiator_required,
+        rewire_required, light_switch_type, num_double_sockets
+    )
+    st.session_state["cost_table"] = combined_cost_df
 except Exception as e:
     st.error(f"❌ Error parsing extracted table: {e}")
     st.stop()
