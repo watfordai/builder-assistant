@@ -118,13 +118,6 @@ try:
 except Exception as e:
     st.error(f"❌ Error parsing extracted table: {e}")
     st.stop()
-        st.session_state["room_table"] = df
-
-        combined_cost_df = estimate_costs(
-            df, flooring_type, paint_type, wall_finish, radiator_required,
-            rewire_required, light_switch_type, num_double_sockets
-        )
-        st.session_state["cost_table"] = combined_cost_df
 
 # --- Restore Previous Session if Loaded ---
 if "room_table" in st.session_state and "cost_table" in st.session_state and not process_button:
